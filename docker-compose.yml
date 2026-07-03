@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: solca-postgres
+    environment:
+      POSTGRES_USER: solca
+      POSTGRES_PASSWORD: solca
+      POSTGRES_DB: solca_admin
+    ports:
+      - "5432:5432"
+    volumes:
+      - solca-postgres-data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U solca -d solca_admin"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  paciente-maestro-service:
+    build: ./paciente-maestro-service
+    container_name: paciente-maestro-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/paciente_maestro_db
+      SPRING_DATASOURCE_USERNAME: solca
+      SPRING_DATASOURCE_PASSWORD: solca
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  consulta-clinica-service:
+    build: ./consulta-clinica-service
+    container_name: consulta-clinica-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/consulta_clinica_db
+      SPRING_DATASOURCE_USERNAME: solca
+      SPRING_DATASOURCE_PASSWORD: solca
+    ports:
+      - "8082:8082"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  laboratorio-clinico-service:
+    build: ./laboratorio-clinico-service
+    container_name: laboratorio-clinico-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/laboratorio_clinico_db
+      SPRING_DATASOURCE_USERNAME: solca
+      SPRING_DATASOURCE_PASSWORD: solca
+    ports:
+      - "8083:8083"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  imagenologia-service:
+    build: ./imagenologia-service
+    container_name: imagenologia-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/imagenologia_db
+      SPRING_DATASOURCE_USERNAME: solca
+      SPRING_DATASOURCE_PASSWORD: solca
+    ports:
+      - "8084:8084"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  repositorio-clinico-regional-service:
+    build: ./repositorio-clinico-regional-service
+    container_name: repositorio-clinico-regional-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/repositorio_clinico_regional_db
+      SPRING_DATASOURCE_USERNAME: solca
+      SPRING_DATASOURCE_PASSWORD: solca
+      PACIENTE_SERVICE_URL: http://paciente-maestro-service:8081
+      CONSULTA_SERVICE_URL: http://consulta-clinica-service:8082
+      LABORATORIO_SERVICE_URL: http://laboratorio-clinico-service:8083
+      IMAGENOLOGIA_SERVICE_URL: http://imagenologia-service:8084
+    ports:
+      - "8085:8085"
+    depends_on:
+      paciente-maestro-service:
+        condition: service_started
+      consulta-clinica-service:
+        condition: service_started
+      laboratorio-clinico-service:
+        condition: service_started
+      imagenologia-service:
+        condition: service_started
+
+volumes:
+  solca-postgres-data:

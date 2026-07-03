@@ -1,0 +1,138 @@
+{
+  "info": {
+    "name": "SOLCA Repositorio Clinico Regional",
+    "description": "Coleccion para evidenciar microservicios independientes, llamadas REST y respuesta consolidada del repositorio regional.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Paciente Maestro Regional",
+      "item": [
+        {
+          "name": "Listar pacientes",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8081/pacientes"
+          }
+        },
+        {
+          "name": "Obtener paciente REG-0001",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8081/pacientes/REG-0001"
+          }
+        },
+        {
+          "name": "Crear paciente",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPacienteRegional\": \"REG-0004\",\n  \"cedula\": \"0901020304\",\n  \"nombres\": \"Andrea Valeria\",\n  \"apellidos\": \"Mora Santos\",\n  \"sedeOrigen\": \"SOLCA Quito\",\n  \"fechaNacimiento\": \"1988-08-18\",\n  \"sexo\": \"Femenino\",\n  \"direccion\": \"Av. 10 de Agosto, Quito\",\n  \"telefono\": \"0964445556\"\n}"
+            },
+            "url": "http://localhost:8081/pacientes"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Consulta Clinica",
+      "item": [
+        {
+          "name": "Listar consultas",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8082/consultas"
+          }
+        },
+        {
+          "name": "Consultas por paciente",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8082/consultas/paciente/REG-0001"
+          }
+        },
+        {
+          "name": "Crear consulta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idPacienteRegional\": \"REG-0001\",\n  \"sede\": \"SOLCA Cuenca\",\n  \"fechaConsulta\": \"2026-06-20\",\n  \"especialidad\": \"Oncologia Clinica\",\n  \"diagnostico\": \"Control clinico regional\",\n  \"medicoTratante\": \"Dr. Marco Torres\",\n  \"observaciones\": \"Paciente derivada a laboratorio.\"\n}"
+            },
+            "url": "http://localhost:8082/consultas"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Laboratorio Clinico",
+      "item": [
+        {
+          "name": "Listar resultados",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8083/laboratorio"
+          }
+        },
+        {
+          "name": "Resultados por paciente",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8083/laboratorio/paciente/REG-0001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Imagenologia PACS",
+      "item": [
+        {
+          "name": "Listar imagenes",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8084/imagenes"
+          }
+        },
+        {
+          "name": "Imagenes por paciente",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8084/imagenes/paciente/REG-0001"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Repositorio Clinico Regional",
+      "item": [
+        {
+          "name": "Historia consolidada obligatoria",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8085/repositorio/paciente/REG-0001"
+          }
+        },
+        {
+          "name": "Registros de consulta al repositorio",
+          "request": {
+            "method": "GET",
+            "url": "http://localhost:8085/repositorio/registros"
+          }
+        }
+      ]
+    }
+  ]
+}
