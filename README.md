@@ -37,6 +37,36 @@ Requisito: Docker Desktop.
 docker compose up --build
 ```
 
+## Autenticacion JWT
+
+Credenciales de demostracion:
+
+```text
+usuario: admin
+clave: admin123
+```
+
+Primero solicitar token:
+
+```text
+POST http://localhost:8085/auth/login
+```
+
+Body:
+
+```json
+{
+  "username": "admin",
+  "password": "admin123"
+}
+```
+
+Luego enviar el token en cada endpoint protegido:
+
+```text
+Authorization: Bearer TOKEN
+```
+
 Endpoint obligatorio del Avance 2:
 
 ```text

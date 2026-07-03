@@ -17,8 +17,8 @@ public class RepositorioClinicoRegionalApplication {
     @Bean
     RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder
-                .setConnectTimeout(Duration.ofSeconds(3))
-                .setReadTimeout(Duration.ofSeconds(3))
+                .setConnectTimeout(Duration.ofSeconds(10))
+                .setReadTimeout(Duration.ofSeconds(20))
                 .build();
     }
 }

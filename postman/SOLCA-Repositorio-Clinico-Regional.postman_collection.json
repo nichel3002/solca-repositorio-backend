@@ -4,7 +4,57 @@
     "description": "Coleccion para evidenciar microservicios independientes, llamadas REST y respuesta consolidada del repositorio regional.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{jwt}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "jwt",
+      "value": ""
+    }
+  ],
   "item": [
+    {
+      "name": "Autenticacion JWT",
+      "item": [
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('jwt', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "http://localhost:8085/auth/login"
+          }
+        }
+      ]
+    },
     {
       "name": "Paciente Maestro Regional",
       "item": [
