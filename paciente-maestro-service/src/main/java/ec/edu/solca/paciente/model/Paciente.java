@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 @Entity
 @Table(name = "pacientes")
@@ -14,14 +15,17 @@ public class Paciente {
     private String idPacienteRegional;
 
     @NotBlank
+    @Pattern(regexp = "^[0-9]{10}$", message = "La cedula debe tener 10 digitos numericos")
     @Column(nullable = false, unique = true, length = 10)
     private String cedula;
 
     @NotBlank
+    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$", message = "Los nombres solo deben contener letras y espacios")
     @Column(nullable = false, length = 120)
     private String nombres;
 
     @NotBlank
+    @Pattern(regexp = "^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$", message = "Los apellidos solo deben contener letras y espacios")
     @Column(nullable = false, length = 120)
     private String apellidos;
 
@@ -38,6 +42,7 @@ public class Paciente {
     private String direccion;
 
     @Column(length = 30)
+    @Pattern(regexp = "^[0-9]{7,10}$", message = "El telefono debe tener entre 7 y 10 digitos")
     private String telefono;
 
     public String getIdPacienteRegional() {

@@ -57,6 +57,12 @@ public class RepositorioClinicoController {
         return registroRepository.findAll();
     }
 
+    @GetMapping("/servicios")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO', 'LABORATORIO')")
+    public List<java.util.Map<String, Object>> listarServicios() {
+        return integracionService.consultarServiciosDisponibles();
+    }
+
     @PostMapping("/pacientes")
     @PreAuthorize("hasRole('ADMIN')")
     public Object crearPaciente(@RequestBody Object paciente) {

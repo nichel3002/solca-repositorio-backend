@@ -76,6 +76,15 @@ public class RepositorioIntegracionService {
         return crearObjeto(imagenologiaUrl + "/imagenes", estudio);
     }
 
+    public List<Map<String, Object>> consultarServiciosDisponibles() {
+        List<Map<String, Object>> servicios = new ArrayList<>();
+        servicios.add(verificarServicio("Paciente maestro", "paciente-maestro", pacienteUrl + "/pacientes"));
+        servicios.add(verificarServicio("Consulta clinica", "consulta-clinica", consultaUrl + "/consultas"));
+        servicios.add(verificarServicio("Laboratorio clinico", "laboratorio-clinico", laboratorioUrl + "/laboratorio"));
+        servicios.add(verificarServicio("Imagenologia / PACS", "imagenologia", imagenologiaUrl + "/imagenes"));
+        return servicios;
+    }
+
     private Object obtenerObjeto(String url, String servicio, Map<String, String> errores) {
         try {
             return restTemplate.getForObject(url, Object.class);
@@ -97,6 +106,25 @@ public class RepositorioIntegracionService {
     private Object crearObjeto(String url, Object body) {
         ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(body), Object.class);
         return response.getBody();
+    }
+
+    private Map<String, Object> verificarServicio(String nombre, String codigo, String url) {
+        Map<String, Object> estado = new LinkedHashMap<>();
+        estado.put("nombre", nombre);
+        estado.put("codigo", codigo);
+        estado.put("endpoint", url);
+        try {
+            long inicio = System.currentTimeMillis();
+            restTemplate.exchange(url, HttpMethod.GET, null, Object.class);
+            estado.put("disponible", true);
+            estado.put("mensaje", "Servicio disponible");
+            estado.put("latenciaMs", System.currentTimeMillis() - inicio);
+        } catch (RestClientException ex) {
+            estado.put("disponible", false);
+            estado.put("mensaje", "No disponible: " + ex.getClass().getSimpleName());
+            estado.put("latenciaMs", null);
+        }
+        return estado;
     }
 
     private String extraerIdPacienteRegional(Object paciente) {
