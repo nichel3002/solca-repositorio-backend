@@ -49,7 +49,7 @@ public class PacienteController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public ResponseEntity<Paciente> crear(@Valid @RequestBody Paciente paciente) {
         Paciente guardado = repository.save(paciente);
         return ResponseEntity.created(URI.create("/pacientes/" + guardado.getIdPacienteRegional())).body(guardado);

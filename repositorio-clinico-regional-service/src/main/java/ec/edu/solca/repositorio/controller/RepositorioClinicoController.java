@@ -65,7 +65,7 @@ public class RepositorioClinicoController {
     }
 
     @PostMapping("/pacientes")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public Object crearPaciente(@RequestBody Object paciente) {
         String errorValidacion = validarPaciente(paciente);
         if (!errorValidacion.isBlank()) {
