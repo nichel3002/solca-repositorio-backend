@@ -3,7 +3,9 @@ package ec.edu.solca.repositorio.service;
 import ec.edu.solca.repositorio.dto.HistoriaClinicaRegionalResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -58,6 +60,22 @@ public class RepositorioIntegracionService {
         return new HistoriaClinicaRegionalResponse(paciente, consultas, laboratorio, imagenes, errores);
     }
 
+    public Object crearPaciente(Object paciente) {
+        return crearObjeto(pacienteUrl + "/pacientes", paciente);
+    }
+
+    public Object crearConsulta(Object consulta) {
+        return crearObjeto(consultaUrl + "/consultas", consulta);
+    }
+
+    public Object crearLaboratorio(Object resultado) {
+        return crearObjeto(laboratorioUrl + "/laboratorio", resultado);
+    }
+
+    public Object crearImagen(Object estudio) {
+        return crearObjeto(imagenologiaUrl + "/imagenes", estudio);
+    }
+
     private Object obtenerObjeto(String url, String servicio, Map<String, String> errores) {
         try {
             return restTemplate.getForObject(url, Object.class);
@@ -74,6 +92,11 @@ public class RepositorioIntegracionService {
             errores.put(servicio, "No se pudo consultar el microservicio: " + ex.getClass().getSimpleName());
             return new ArrayList<>();
         }
+    }
+
+    private Object crearObjeto(String url, Object body) {
+        ResponseEntity<Object> response = restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(body), Object.class);
+        return response.getBody();
     }
 
     private String extraerIdPacienteRegional(Object paciente) {

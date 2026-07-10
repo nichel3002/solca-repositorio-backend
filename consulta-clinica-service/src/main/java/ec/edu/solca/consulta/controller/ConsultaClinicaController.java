@@ -39,7 +39,7 @@ public class ConsultaClinicaController {
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public ResponseEntity<ConsultaClinica> crear(@Valid @RequestBody ConsultaClinica consulta) {
         ConsultaClinica guardada = repository.save(consulta);
         return ResponseEntity.created(URI.create("/consultas/" + guardada.getId())).body(guardada);

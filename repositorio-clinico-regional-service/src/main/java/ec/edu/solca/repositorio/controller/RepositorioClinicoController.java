@@ -9,6 +9,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,6 +55,30 @@ public class RepositorioClinicoController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<RegistroRepositorio> listarAuditoria() {
         return registroRepository.findAll();
+    }
+
+    @PostMapping("/pacientes")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Object crearPaciente(@RequestBody Object paciente) {
+        return integracionService.crearPaciente(paciente);
+    }
+
+    @PostMapping("/consultas")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public Object crearConsulta(@RequestBody Object consulta) {
+        return integracionService.crearConsulta(consulta);
+    }
+
+    @PostMapping("/laboratorio")
+    @PreAuthorize("hasAnyRole('ADMIN', 'LABORATORIO')")
+    public Object crearLaboratorio(@RequestBody Object resultado) {
+        return integracionService.crearLaboratorio(resultado);
+    }
+
+    @PostMapping("/imagenes")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public Object crearImagen(@RequestBody Object estudio) {
+        return integracionService.crearImagen(estudio);
     }
 
     private void auditar(String idPacienteRegional, String criterioBusqueda, String endpoint,
