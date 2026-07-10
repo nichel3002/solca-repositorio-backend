@@ -4,6 +4,7 @@ import ec.edu.solca.paciente.model.Paciente;
 import ec.edu.solca.paciente.repository.PacienteRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,18 +27,29 @@ public class PacienteController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public List<Paciente> listar() {
         return repository.findAll();
     }
 
     @GetMapping("/{idPacienteRegional}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public ResponseEntity<Paciente> obtener(@PathVariable String idPacienteRegional) {
         return repository.findById(idPacienteRegional)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/cedula/{cedula}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public ResponseEntity<Paciente> obtenerPorCedula(@PathVariable String cedula) {
+        return repository.findByCedula(cedula)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Paciente> crear(@Valid @RequestBody Paciente paciente) {
         Paciente guardado = repository.save(paciente);
         return ResponseEntity.created(URI.create("/pacientes/" + guardado.getIdPacienteRegional())).body(guardado);

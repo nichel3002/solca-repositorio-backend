@@ -1,7 +1,7 @@
 package ec.edu.solca.repositorio.controller;
 
 import ec.edu.solca.repositorio.security.JwtService;
-import org.springframework.beans.factory.annotation.Value;
+import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,30 +9,33 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+import java.util.Set;
+
 @CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+    private static final Set<String> ROLES = Set.of("ADMIN", "MEDICO", "LABORATORIO");
     private final JwtService jwtService;
-
-    @Value("${auth.username}")
-    private String username;
-
-    @Value("${auth.password}")
-    private String password;
 
     public AuthController(JwtService jwtService) {
         this.jwtService = jwtService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        if (username.equals(request.username()) && password.equals(request.password())) {
-            return ResponseEntity.ok(new AuthResponse(jwtService.createToken(request.username()), request.username(), jwtService.getExpirationSeconds()));
+    public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
+        String role = request.role().toUpperCase();
+        if (!ROLES.contains(role)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Rol no permitido"));
         }
-        return ResponseEntity.status(401).build();
+        String username = request.username().isBlank() ? role.toLowerCase() + "@solca.local" : request.username();
+        return ResponseEntity.ok(Map.of(
+                "token", jwtService.generateToken(username, role),
+                "username", username,
+                "role", role));
     }
 
-    public record LoginRequest(String username, String password) {}
-    public record AuthResponse(String token, String username, long expiresInSeconds) {}
+    public record LoginRequest(@NotBlank String username, @NotBlank String role) {
+    }
 }

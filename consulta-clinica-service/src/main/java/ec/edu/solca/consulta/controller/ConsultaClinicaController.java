@@ -4,6 +4,7 @@ import ec.edu.solca.consulta.model.ConsultaClinica;
 import ec.edu.solca.consulta.repository.ConsultaClinicaRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,16 +27,19 @@ public class ConsultaClinicaController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public List<ConsultaClinica> listar() {
         return repository.findAll();
     }
 
     @GetMapping("/paciente/{idPacienteRegional}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public List<ConsultaClinica> listarPorPaciente(@PathVariable String idPacienteRegional) {
         return repository.findByIdPacienteRegional(idPacienteRegional);
     }
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ConsultaClinica> crear(@Valid @RequestBody ConsultaClinica consulta) {
         ConsultaClinica guardada = repository.save(consulta);
         return ResponseEntity.created(URI.create("/consultas/" + guardada.getId())).body(guardada);

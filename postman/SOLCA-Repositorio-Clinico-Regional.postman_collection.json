@@ -22,10 +22,10 @@
   ],
   "item": [
     {
-      "name": "Autenticacion JWT",
+      "name": "Autenticacion JWT por rol",
       "item": [
         {
-          "name": "Login",
+          "name": "Login MEDICO",
           "event": [
             {
               "listen": "test",
@@ -48,7 +48,36 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"admin123\"\n}"
+              "raw": "{\n  \"username\": \"medico@solca.local\",\n  \"role\": \"MEDICO\"\n}"
+            },
+            "url": "http://localhost:8085/auth/login"
+          }
+        },
+        {
+          "name": "Login ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('jwt', json.token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"admin@solca.local\",\n  \"role\": \"ADMIN\"\n}"
             },
             "url": "http://localhost:8085/auth/login"
           }

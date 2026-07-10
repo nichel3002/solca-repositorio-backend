@@ -4,6 +4,7 @@ import ec.edu.solca.laboratorio.model.ResultadoLaboratorio;
 import ec.edu.solca.laboratorio.repository.ResultadoLaboratorioRepository;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,16 +27,19 @@ public class LaboratorioController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO', 'LABORATORIO')")
     public List<ResultadoLaboratorio> listar() {
         return repository.findAll();
     }
 
     @GetMapping("/paciente/{idPacienteRegional}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO', 'LABORATORIO')")
     public List<ResultadoLaboratorio> listarPorPaciente(@PathVariable String idPacienteRegional) {
         return repository.findByIdPacienteRegional(idPacienteRegional);
     }
 
     @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'LABORATORIO')")
     public ResponseEntity<ResultadoLaboratorio> crear(@Valid @RequestBody ResultadoLaboratorio resultado) {
         ResultadoLaboratorio guardado = repository.save(resultado);
         return ResponseEntity.created(URI.create("/laboratorio/" + guardado.getId())).body(guardado);

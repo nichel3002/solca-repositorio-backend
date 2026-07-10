@@ -1,11 +1,8 @@
 package ec.edu.solca.repositorio.service;
 
 import ec.edu.solca.repositorio.dto.HistoriaClinicaRegionalResponse;
-import ec.edu.solca.repositorio.security.JwtService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -19,28 +16,22 @@ import java.util.Map;
 @Service
 public class RepositorioIntegracionService {
     private final RestTemplate restTemplate;
-    private final JwtService jwtService;
     private final String pacienteUrl;
     private final String consultaUrl;
     private final String laboratorioUrl;
     private final String imagenologiaUrl;
-    private final String usuarioInterno;
 
     public RepositorioIntegracionService(
             RestTemplate restTemplate,
-            JwtService jwtService,
             @Value("${servicios.paciente-url}") String pacienteUrl,
             @Value("${servicios.consulta-url}") String consultaUrl,
             @Value("${servicios.laboratorio-url}") String laboratorioUrl,
-            @Value("${servicios.imagenologia-url}") String imagenologiaUrl,
-            @Value("${servicios.usuario-interno}") String usuarioInterno) {
+            @Value("${servicios.imagenologia-url}") String imagenologiaUrl) {
         this.restTemplate = restTemplate;
-        this.jwtService = jwtService;
         this.pacienteUrl = pacienteUrl;
         this.consultaUrl = consultaUrl;
         this.laboratorioUrl = laboratorioUrl;
         this.imagenologiaUrl = imagenologiaUrl;
-        this.usuarioInterno = usuarioInterno;
     }
 
     public HistoriaClinicaRegionalResponse consolidar(String idPacienteRegional) {
@@ -52,9 +43,24 @@ public class RepositorioIntegracionService {
         return new HistoriaClinicaRegionalResponse(paciente, consultas, laboratorio, imagenes, errores);
     }
 
+    public HistoriaClinicaRegionalResponse consolidarPorCedula(String cedula) {
+        Map<String, String> errores = new LinkedHashMap<>();
+        Object paciente = obtenerObjeto(pacienteUrl + "/pacientes/cedula/" + cedula, "paciente-maestro", errores);
+        String idPacienteRegional = extraerIdPacienteRegional(paciente);
+        if (idPacienteRegional.isBlank()) {
+            errores.put("repositorio-regional", "No se encontro paciente con la cedula indicada.");
+            return new HistoriaClinicaRegionalResponse(paciente, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), errores);
+        }
+
+        List<Object> consultas = obtenerLista(consultaUrl + "/consultas/paciente/" + idPacienteRegional, "consulta-clinica", errores);
+        List<Object> laboratorio = obtenerLista(laboratorioUrl + "/laboratorio/paciente/" + idPacienteRegional, "laboratorio-clinico", errores);
+        List<Object> imagenes = obtenerLista(imagenologiaUrl + "/imagenes/paciente/" + idPacienteRegional, "imagenologia", errores);
+        return new HistoriaClinicaRegionalResponse(paciente, consultas, laboratorio, imagenes, errores);
+    }
+
     private Object obtenerObjeto(String url, String servicio, Map<String, String> errores) {
         try {
-            return restTemplate.exchange(url, HttpMethod.GET, entidadAutorizada(), Object.class).getBody();
+            return restTemplate.getForObject(url, Object.class);
         } catch (RestClientException ex) {
             errores.put(servicio, "No se pudo consultar el microservicio: " + ex.getClass().getSimpleName());
             return Map.of();
@@ -63,16 +69,17 @@ public class RepositorioIntegracionService {
 
     private List<Object> obtenerLista(String url, String servicio, Map<String, String> errores) {
         try {
-            return restTemplate.exchange(url, HttpMethod.GET, entidadAutorizada(), new ParameterizedTypeReference<List<Object>>() {}).getBody();
+            return restTemplate.exchange(url, HttpMethod.GET, null, new ParameterizedTypeReference<List<Object>>() {}).getBody();
         } catch (RestClientException ex) {
             errores.put(servicio, "No se pudo consultar el microservicio: " + ex.getClass().getSimpleName());
             return new ArrayList<>();
         }
     }
 
-    private HttpEntity<Void> entidadAutorizada() {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(jwtService.createToken(usuarioInterno));
-        return new HttpEntity<>(headers);
+    private String extraerIdPacienteRegional(Object paciente) {
+        if (paciente instanceof Map<?, ?> datos && datos.get("idPacienteRegional") != null) {
+            return String.valueOf(datos.get("idPacienteRegional"));
+        }
+        return "";
     }
 }

@@ -1,70 +1,54 @@
 package ec.edu.solca.laboratorio.security;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Map;
+import java.util.Optional;
 
-@Component
+@Service
 public class JwtService {
-    private static final Pattern SUBJECT_PATTERN = Pattern.compile("\"sub\":\"([^\"]+)\"");
-    private static final Pattern EXP_PATTERN = Pattern.compile("\"exp\":(\\d+)");
+    private static final Base64.Encoder URL_ENCODER = Base64.getUrlEncoder().withoutPadding();
+    private static final Base64.Decoder URL_DECODER = Base64.getUrlDecoder();
+    private final ObjectMapper objectMapper;
+    private final String secret;
 
-    @Value("${jwt.secret}")
-    private String secret;
-
-    @Value("${jwt.expiration-seconds}")
-    private long expirationSeconds;
-
-    public String createToken(String username) {
-        long exp = Instant.now().plusSeconds(expirationSeconds).getEpochSecond();
-        String header = base64Url("{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
-        String payload = base64Url("{\"sub\":\"" + username + "\",\"exp\":" + exp + "}");
-        String content = header + "." + payload;
-        return content + "." + sign(content);
+    public JwtService(ObjectMapper objectMapper, @Value("${security.jwt.secret}") String secret) {
+        this.objectMapper = objectMapper;
+        this.secret = secret;
     }
 
-    public boolean isValid(String token) {
+    public Optional<JwtPrincipal> validate(String token) {
         try {
             String[] parts = token.split("\\.");
-            if (parts.length != 3 || !sign(parts[0] + "." + parts[1]).equals(parts[2])) {
-                return false;
+            if (parts.length != 3) {
+                return Optional.empty();
             }
-            String payload = new String(Base64.getUrlDecoder().decode(parts[1]), StandardCharsets.UTF_8);
-            Matcher matcher = EXP_PATTERN.matcher(payload);
-            return matcher.find() && Long.parseLong(matcher.group(1)) > Instant.now().getEpochSecond();
-        } catch (RuntimeException ex) {
-            return false;
-        }
-    }
-
-    public String subject(String token) {
-        String payload = new String(Base64.getUrlDecoder().decode(token.split("\\.")[1]), StandardCharsets.UTF_8);
-        Matcher matcher = SUBJECT_PATTERN.matcher(payload);
-        return matcher.find() ? matcher.group(1) : "usuario";
-    }
-
-    public long getExpirationSeconds() {
-        return expirationSeconds;
-    }
-
-    private String base64Url(String value) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
-    }
-
-    private String sign(String content) {
-        try {
-            Mac mac = Mac.getInstance("HmacSHA256");
-            mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
-            return Base64.getUrlEncoder().withoutPadding().encodeToString(mac.doFinal(content.getBytes(StandardCharsets.UTF_8)));
+            String unsigned = parts[0] + "." + parts[1];
+            if (!sign(unsigned).equals(parts[2])) {
+                return Optional.empty();
+            }
+            Map<String, Object> payload = objectMapper.readValue(URL_DECODER.decode(parts[1]), new TypeReference<>() {});
+            long exp = ((Number) payload.getOrDefault("exp", 0)).longValue();
+            if (Instant.now().getEpochSecond() > exp) {
+                return Optional.empty();
+            }
+            return Optional.of(new JwtPrincipal(String.valueOf(payload.get("sub")), String.valueOf(payload.get("role"))));
         } catch (Exception ex) {
-            throw new IllegalStateException("No se pudo firmar el token JWT", ex);
+            return Optional.empty();
         }
+    }
+
+    private String sign(String unsigned) throws Exception {
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+        return URL_ENCODER.encodeToString(mac.doFinal(unsigned.getBytes(StandardCharsets.UTF_8)));
     }
 }

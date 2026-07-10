@@ -10,7 +10,6 @@ consulta-clinica-service/
 laboratorio-clinico-service/
 imagenologia-service/
 repositorio-clinico-regional-service/
-solca-repositorio-angular/
 database/
 postman/
 docker-compose.yml
@@ -27,7 +26,6 @@ Cada carpeta de microservicio puede subirse a un repositorio independiente.
 | Laboratorio Clinico | 8083 | laboratorio_clinico_db |
 | Imagenologia / PACS basico | 8084 | imagenologia_db |
 | Repositorio Clinico Regional | 8085 | repositorio_clinico_regional_db |
-| Angular | 4200 | No aplica |
 
 ## Levantar backend completo
 
@@ -37,37 +35,14 @@ Requisito: Docker Desktop.
 docker compose up --build
 ```
 
-## Autenticacion JWT
+Endpoint de consulta consolidada, protegido con JWT desde el Avance 3:
 
-Credenciales de demostracion:
-
-```text
-usuario: admin
-clave: admin123
+```powershell
+$login = Invoke-RestMethod -Method Post -Uri http://localhost:8085/auth/login -ContentType 'application/json' -Body '{"username":"medico@solca.local","role":"MEDICO"}'
+Invoke-RestMethod -Headers @{ Authorization = "Bearer $($login.token)" } -Uri http://localhost:8085/repositorio/paciente/REG-0001
 ```
 
-Primero solicitar token:
-
-```text
-POST http://localhost:8085/auth/login
-```
-
-Body:
-
-```json
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
-
-Luego enviar el token en cada endpoint protegido:
-
-```text
-Authorization: Bearer TOKEN
-```
-
-Endpoint obligatorio del Avance 2:
+Ruta:
 
 ```text
 GET http://localhost:8085/repositorio/paciente/REG-0001
@@ -87,19 +62,17 @@ Respuesta esperada:
 
 El repositorio regional consume los otros microservicios por REST y no accede directamente a sus bases de datos.
 
-## Levantar frontend
+## Avance 3
 
-```powershell
-cd solca-repositorio-angular
-npm install
-npm start
-```
+El avance 3 agrega:
 
-Abrir:
-
-```text
-http://localhost:4200
-```
+- Frontend con inicio de sesion por rol, busqueda por ID regional o cedula y auditoria para ADMIN.
+- JWT con Spring Security en todos los microservicios.
+- Roles `ADMIN`, `MEDICO` y `LABORATORIO`.
+- Control de acceso por endpoint.
+- Auditoria basica de consultas consolidadas.
+- Docker Compose de backend con JWT compartido. El Dockerfile de Angular vive en el repositorio frontend `solca-repositorio-frontend`.
+- Documentacion de arquitectura, riesgos, respaldo y plan cloud en `docs/avance-3-frontend-seguridad-contenedores.md`.
 
 ## Evidencia para Postman
 

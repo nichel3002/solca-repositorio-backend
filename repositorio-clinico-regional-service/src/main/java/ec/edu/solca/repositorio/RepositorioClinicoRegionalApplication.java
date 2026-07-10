@@ -1,9 +1,11 @@
 package ec.edu.solca.repositorio;
 
+import ec.edu.solca.repositorio.security.JwtService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.Duration;
@@ -15,10 +17,15 @@ public class RepositorioClinicoRegionalApplication {
     }
 
     @Bean
-    RestTemplate restTemplate(RestTemplateBuilder builder) {
+    RestTemplate restTemplate(RestTemplateBuilder builder, JwtService jwtService) {
         return builder
-                .setConnectTimeout(Duration.ofSeconds(10))
-                .setReadTimeout(Duration.ofSeconds(20))
+                .additionalInterceptors((request, body, execution) -> {
+                    request.getHeaders().set(HttpHeaders.AUTHORIZATION,
+                            "Bearer " + jwtService.generateToken("repositorio-service", "ADMIN"));
+                    return execution.execute(request, body);
+                })
+                .setConnectTimeout(Duration.ofSeconds(3))
+                .setReadTimeout(Duration.ofSeconds(3))
                 .build();
     }
 }

@@ -1,4 +1,4 @@
-package ec.edu.solca.imagenologia.security;
+package ec.edu.solca.repositorio.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -14,10 +14,10 @@ import java.io.IOException;
 import java.util.List;
 
 @Component
-public class JwtAuthFilter extends OncePerRequestFilter {
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
 
-    public JwtAuthFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService) {
         this.jwtService = jwtService;
     }
 
@@ -26,15 +26,13 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {
-            String token = header.substring(7);
-            if (jwtService.isValid(token)) {
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        jwtService.subject(token),
+            jwtService.validate(header.substring(7)).ifPresent(principal -> {
+                var auth = new UsernamePasswordAuthenticationToken(
+                        principal.username(),
                         null,
-                        List.of(new SimpleGrantedAuthority("ROLE_USER"))
-                );
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            }
+                        List.of(new SimpleGrantedAuthority("ROLE_" + principal.role())));
+                SecurityContextHolder.getContext().setAuthentication(auth);
+            });
         }
         filterChain.doFilter(request, response);
     }
