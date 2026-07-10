@@ -19,7 +19,10 @@ import java.util.Set;
 @RequestMapping("/auth")
 public class AuthController {
     private static final Set<String> ROLES = Set.of("ADMIN", "MEDICO", "LABORATORIO");
-    private static final Set<String> USUARIOS_DEMO = Set.of("admin@solca.local", "medico@solca.local", "laboratorio@solca.local");
+    private static final Map<String, String> USUARIOS_DEMO = Map.of(
+            "admin@solca.local", "ADMIN",
+            "medico@solca.local", "MEDICO",
+            "laboratorio@solca.local", "LABORATORIO");
     private final JwtService jwtService;
     private final UsuarioClinicoRepository usuarioRepository;
 
@@ -31,22 +34,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
         String username = normalizarUsuario(request.username());
-        String role = texto(request.role()).toUpperCase();
-        if (!ROLES.contains(role)) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Rol no permitido"));
+        if (username.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ingrese el usuario clinico."));
         }
 
-        if (!username.isBlank()) {
-            var usuarioRegistrado = usuarioRepository.findById(username);
-            if (usuarioRegistrado.isPresent()) {
-                role = usuarioRegistrado.get().getRole();
-            } else if (!USUARIOS_DEMO.contains(username)) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Usuario no registrado"));
-            }
-        } else {
-            username = role.toLowerCase() + "@solca.local";
+        String role = usuarioRepository.findById(username)
+                .map(UsuarioClinico::getRole)
+                .orElse(USUARIOS_DEMO.get(username));
+        if (role == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Usuario no registrado"));
         }
-
         return ResponseEntity.ok(Map.of(
                 "token", jwtService.generateToken(username, role),
                 "username", username,
@@ -68,7 +65,7 @@ public class AuthController {
         if (!ROLES.contains(role)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Rol no permitido"));
         }
-        if (usuarioRepository.existsById(username) || USUARIOS_DEMO.contains(username)) {
+        if (usuarioRepository.existsById(username) || USUARIOS_DEMO.containsKey(username)) {
             return ResponseEntity.badRequest().body(Map.of("error", "El usuario ya existe."));
         }
 
@@ -93,7 +90,7 @@ public class AuthController {
         return valor == null ? "" : valor.trim();
     }
 
-    public record LoginRequest(@NotBlank String username, @NotBlank String role) {
+    public record LoginRequest(@NotBlank String username) {
     }
 
     public record RegistroRequest(@NotBlank String username, @NotBlank String nombreCompleto, @NotBlank String role, String sede) {
