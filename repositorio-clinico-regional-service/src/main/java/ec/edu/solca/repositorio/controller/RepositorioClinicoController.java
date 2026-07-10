@@ -6,7 +6,6 @@ import ec.edu.solca.repositorio.repository.RegistroRepositorioRepository;
 import ec.edu.solca.repositorio.service.RepositorioIntegracionService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,7 +13,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -69,7 +67,10 @@ public class RepositorioClinicoController {
     @PostMapping("/pacientes")
     @PreAuthorize("hasRole('ADMIN')")
     public Object crearPaciente(@RequestBody Object paciente) {
-        validarPaciente(paciente);
+        String errorValidacion = validarPaciente(paciente);
+        if (!errorValidacion.isBlank()) {
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", errorValidacion));
+        }
         return integracionService.crearPaciente(paciente);
     }
 
@@ -111,26 +112,27 @@ public class RepositorioClinicoController {
         return "";
     }
 
-    private void validarPaciente(Object paciente) {
+    private String validarPaciente(Object paciente) {
         if (!(paciente instanceof Map<?, ?> datos)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El paciente debe enviarse como objeto JSON.");
+            return "El paciente debe enviarse como objeto JSON.";
         }
         String cedula = texto(datos.get("cedula"));
         String nombres = texto(datos.get("nombres"));
         String apellidos = texto(datos.get("apellidos"));
         String telefono = texto(datos.get("telefono"));
         if (!cedula.matches("^[0-9]{10}$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La cedula debe tener 10 digitos numericos.");
+            return "La cedula debe tener 10 digitos numericos.";
         }
         if (!nombres.matches("^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,}$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Los nombres solo deben contener letras y espacios.");
+            return "Los nombres solo deben contener letras y espacios.";
         }
         if (!apellidos.matches("^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]{2,}$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Los apellidos solo deben contener letras y espacios.");
+            return "Los apellidos solo deben contener letras y espacios.";
         }
         if (!telefono.isBlank() && !telefono.matches("^[0-9]{7,10}$")) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El telefono debe tener entre 7 y 10 digitos.");
+            return "El telefono debe tener entre 7 y 10 digitos.";
         }
+        return "";
     }
 
     private String texto(Object valor) {
