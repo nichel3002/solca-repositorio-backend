@@ -5,6 +5,8 @@ import ec.edu.solca.repositorio.repository.UsuarioClinicoRepository;
 import ec.edu.solca.repositorio.security.JwtService;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,12 +21,13 @@ import java.util.Set;
 @RequestMapping("/auth")
 public class AuthController {
     private static final Set<String> ROLES = Set.of("ADMIN", "MEDICO", "LABORATORIO");
-    private static final Map<String, String> USUARIOS_DEMO = Map.of(
-            "admin@solca.local", "ADMIN",
-            "medico@solca.local", "MEDICO",
-            "laboratorio@solca.local", "LABORATORIO");
+    private static final Map<String, UsuarioDemo> USUARIOS_DEMO = Map.of(
+            "admin@solca.local", new UsuarioDemo("ADMIN", "admin123"),
+            "medico@solca.local", new UsuarioDemo("MEDICO", "medico123"),
+            "laboratorio@solca.local", new UsuarioDemo("LABORATORIO", "lab123"));
     private final JwtService jwtService;
     private final UsuarioClinicoRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     public AuthController(JwtService jwtService, UsuarioClinicoRepository usuarioRepository) {
         this.jwtService = jwtService;
@@ -34,16 +37,35 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
         String username = normalizarUsuario(request.username());
+        String password = texto(request.password());
         if (username.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Ingrese el usuario clinico."));
         }
+        if (password.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Ingrese la contrasena."));
+        }
 
-        String role = usuarioRepository.findById(username)
-                .map(UsuarioClinico::getRole)
-                .orElse(USUARIOS_DEMO.get(username));
-        if (role == null) {
+        var usuarioRegistrado = usuarioRepository.findById(username);
+        String role;
+        if (usuarioRegistrado.isPresent()) {
+            UsuarioClinico usuario = usuarioRegistrado.get();
+            if (usuario.getPasswordHash() == null || usuario.getPasswordHash().isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "El usuario no tiene contrasena configurada."));
+            }
+            if (!passwordEncoder.matches(password, usuario.getPasswordHash())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Credenciales invalidas"));
+            }
+            role = usuario.getRole();
+        } else if (USUARIOS_DEMO.containsKey(username)) {
+            UsuarioDemo usuarioDemo = USUARIOS_DEMO.get(username);
+            if (!usuarioDemo.password().equals(password)) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Credenciales invalidas"));
+            }
+            role = usuarioDemo.role();
+        } else {
             return ResponseEntity.badRequest().body(Map.of("error", "Usuario no registrado"));
         }
+
         return ResponseEntity.ok(Map.of(
                 "token", jwtService.generateToken(username, role),
                 "username", username,
@@ -54,6 +76,7 @@ public class AuthController {
     public ResponseEntity<Map<String, String>> registrar(@RequestBody RegistroRequest request) {
         String username = normalizarUsuario(request.username());
         String nombreCompleto = texto(request.nombreCompleto());
+        String password = texto(request.password());
         String role = texto(request.role()).toUpperCase();
         String sede = texto(request.sede());
         if (username.isBlank() || !username.contains("@")) {
@@ -61,6 +84,9 @@ public class AuthController {
         }
         if (nombreCompleto.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Ingrese el nombre completo."));
+        }
+        if (password.length() < 6) {
+            return ResponseEntity.badRequest().body(Map.of("error", "La contrasena debe tener al menos 6 caracteres."));
         }
         if (!ROLES.contains(role)) {
             return ResponseEntity.badRequest().body(Map.of("error", "Rol no permitido"));
@@ -74,6 +100,7 @@ public class AuthController {
         usuario.setNombreCompleto(nombreCompleto);
         usuario.setRole(role);
         usuario.setSede(sede.isBlank() ? "SOLCA Quito" : sede);
+        usuario.setPasswordHash(passwordEncoder.encode(password));
         usuarioRepository.save(usuario);
 
         return ResponseEntity.ok(Map.of(
@@ -90,9 +117,12 @@ public class AuthController {
         return valor == null ? "" : valor.trim();
     }
 
-    public record LoginRequest(@NotBlank String username) {
+    public record LoginRequest(@NotBlank String username, @NotBlank String password) {
     }
 
-    public record RegistroRequest(@NotBlank String username, @NotBlank String nombreCompleto, @NotBlank String role, String sede) {
+    public record RegistroRequest(@NotBlank String username, @NotBlank String nombreCompleto, @NotBlank String password, @NotBlank String role, String sede) {
+    }
+
+    private record UsuarioDemo(String role, String password) {
     }
 }

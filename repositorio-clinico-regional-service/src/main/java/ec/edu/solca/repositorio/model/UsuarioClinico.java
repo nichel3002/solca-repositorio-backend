@@ -21,6 +21,9 @@ public class UsuarioClinico {
     @Column(nullable = false, length = 80)
     private String sede;
 
+    @Column(length = 100)
+    private String passwordHash;
+
     public String getUsername() {
         return username;
     }
@@ -51,5 +54,13 @@ public class UsuarioClinico {
 
     public void setSede(String sede) {
         this.sede = sede;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 }
