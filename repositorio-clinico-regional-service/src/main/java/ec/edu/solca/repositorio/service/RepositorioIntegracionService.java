@@ -110,6 +110,16 @@ public class RepositorioIntegracionService {
         return response.getBody();
     }
 
+    public ResponseEntity<byte[]> descargarDicom(Long id, String authorization) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(HttpHeaders.AUTHORIZATION, authorization);
+        return restTemplate.exchange(
+                imagenologiaUrl + "/imagenes/" + id + "/dicom",
+                HttpMethod.GET,
+                new HttpEntity<>(headers),
+                byte[].class);
+    }
+
     public List<Map<String, Object>> consultarServiciosDisponibles() {
         List<Map<String, Object>> servicios = new ArrayList<>();
         servicios.add(verificarServicio("Paciente maestro", "paciente-maestro", pacienteUrl + "/pacientes"));

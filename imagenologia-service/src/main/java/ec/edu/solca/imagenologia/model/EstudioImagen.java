@@ -1,9 +1,11 @@
 package ec.edu.solca.imagenologia.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 
@@ -24,6 +26,9 @@ public class EstudioImagen {
     private String archivoDicom;
     private String protocoloEnvio;
     private String estadoEnvio;
+    @Lob
+    @JsonIgnore
+    private byte[] dicomData;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -47,4 +52,6 @@ public class EstudioImagen {
     public void setProtocoloEnvio(String protocoloEnvio) { this.protocoloEnvio = protocoloEnvio; }
     public String getEstadoEnvio() { return estadoEnvio; }
     public void setEstadoEnvio(String estadoEnvio) { this.estadoEnvio = estadoEnvio; }
+    public byte[] getDicomData() { return dicomData; }
+    public void setDicomData(byte[] dicomData) { this.dicomData = dicomData; }
 }

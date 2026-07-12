@@ -3,6 +3,8 @@ package ec.edu.solca.imagenologia.controller;
 import ec.edu.solca.imagenologia.model.EstudioImagen;
 import ec.edu.solca.imagenologia.repository.EstudioImagenRepository;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -40,6 +42,23 @@ public class ImagenologiaController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public List<EstudioImagen> listarPorPaciente(@PathVariable String idPacienteRegional) {
         return repository.findByIdPacienteRegional(idPacienteRegional);
+    }
+
+    @GetMapping("/{id}/dicom")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public ResponseEntity<?> descargarDicom(@PathVariable Long id) {
+        return repository.findById(id)
+                .<ResponseEntity<?>>map(estudio -> {
+                    if (estudio.getDicomData() == null || estudio.getDicomData().length == 0) {
+                        return ResponseEntity.notFound().build();
+                    }
+                    String archivo = estudio.getArchivoDicom() == null ? "estudio.dcm" : estudio.getArchivoDicom();
+                    return ResponseEntity.ok()
+                            .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + archivo + "\"")
+                            .body(estudio.getDicomData());
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
@@ -81,6 +100,7 @@ public class ImagenologiaController {
         estudio.setEstadoEnvio("ENVIADO_A_IMAGENOLOGIA");
         estudio.setUrlPacs("dicom://imagenologia-solca/" + idPacienteRegional + "/" + archivo.getOriginalFilename());
         estudio.setInformeRadiologico("Pendiente de informe radiologico en PACS.");
+        estudio.setDicomData(contenido);
 
         EstudioImagen guardado = repository.save(estudio);
         return ResponseEntity.created(URI.create("/imagenes/" + guardado.getId())).body(guardado);

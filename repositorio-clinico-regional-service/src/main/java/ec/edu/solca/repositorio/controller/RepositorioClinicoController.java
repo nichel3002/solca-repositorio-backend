@@ -6,6 +6,7 @@ import ec.edu.solca.repositorio.repository.RegistroRepositorioRepository;
 import ec.edu.solca.repositorio.service.RepositorioIntegracionService;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -94,6 +95,12 @@ public class RepositorioClinicoController {
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public Object crearImagen(@RequestBody Object estudio) {
         return integracionService.crearImagen(estudio);
+    }
+
+    @GetMapping("/imagenes/{id}/dicom")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public ResponseEntity<byte[]> descargarDicom(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
+        return integracionService.descargarDicom(id, authorization);
     }
 
     @PostMapping(value = "/imagenes/dicom", consumes = "multipart/form-data")
