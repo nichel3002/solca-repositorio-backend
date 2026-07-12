@@ -1,11 +1,11 @@
 package ec.edu.solca.imagenologia.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 
@@ -26,8 +26,8 @@ public class EstudioImagen {
     private String archivoDicom;
     private String protocoloEnvio;
     private String estadoEnvio;
-    @Lob
     @JsonIgnore
+    @Column(columnDefinition = "bytea")
     private byte[] dicomData;
 
     public Long getId() { return id; }
