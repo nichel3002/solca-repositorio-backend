@@ -2,14 +2,21 @@ package ec.edu.solca.repositorio.service;
 
 import ec.edu.solca.repositorio.dto.HistoriaClinicaRegionalResponse;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -74,6 +81,33 @@ public class RepositorioIntegracionService {
 
     public Object crearImagen(Object estudio) {
         return crearObjeto(imagenologiaUrl + "/imagenes", estudio);
+    }
+
+    public Object enviarDicom(String idPacienteRegional, String sede, String fechaEstudio, String modalidad,
+                              String descripcion, MultipartFile archivo, String authorization) throws IOException {
+        MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
+        body.add("idPacienteRegional", idPacienteRegional);
+        body.add("sede", sede);
+        body.add("fechaEstudio", fechaEstudio);
+        body.add("modalidad", modalidad);
+        body.add("descripcion", descripcion);
+        body.add("archivo", new ByteArrayResource(archivo.getBytes()) {
+            @Override
+            public String getFilename() {
+                return archivo.getOriginalFilename();
+            }
+        });
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.MULTIPART_FORM_DATA);
+        headers.set(HttpHeaders.AUTHORIZATION, authorization);
+
+        ResponseEntity<Object> response = restTemplate.exchange(
+                imagenologiaUrl + "/imagenes/dicom",
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                Object.class);
+        return response.getBody();
     }
 
     public List<Map<String, Object>> consultarServiciosDisponibles() {

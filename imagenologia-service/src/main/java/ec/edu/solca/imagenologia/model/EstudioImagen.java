@@ -21,6 +21,9 @@ public class EstudioImagen {
     private String descripcion;
     private String urlPacs;
     private String informeRadiologico;
+    private String archivoDicom;
+    private String protocoloEnvio;
+    private String estadoEnvio;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -38,4 +41,10 @@ public class EstudioImagen {
     public void setUrlPacs(String urlPacs) { this.urlPacs = urlPacs; }
     public String getInformeRadiologico() { return informeRadiologico; }
     public void setInformeRadiologico(String informeRadiologico) { this.informeRadiologico = informeRadiologico; }
+    public String getArchivoDicom() { return archivoDicom; }
+    public void setArchivoDicom(String archivoDicom) { this.archivoDicom = archivoDicom; }
+    public String getProtocoloEnvio() { return protocoloEnvio; }
+    public void setProtocoloEnvio(String protocoloEnvio) { this.protocoloEnvio = protocoloEnvio; }
+    public String getEstadoEnvio() { return estadoEnvio; }
+    public void setEstadoEnvio(String estadoEnvio) { this.estadoEnvio = estadoEnvio; }
 }

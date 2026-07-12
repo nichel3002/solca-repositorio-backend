@@ -11,9 +11,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -92,6 +96,23 @@ public class RepositorioClinicoController {
         return integracionService.crearImagen(estudio);
     }
 
+    @PostMapping(value = "/imagenes/dicom", consumes = "multipart/form-data")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public Object enviarDicom(
+            @RequestParam String idPacienteRegional,
+            @RequestParam String sede,
+            @RequestParam String fechaEstudio,
+            @RequestParam String modalidad,
+            @RequestParam String descripcion,
+            @RequestParam MultipartFile archivo,
+            @RequestHeader("Authorization") String authorization) throws IOException {
+        String errorValidacion = validarDicom(idPacienteRegional, fechaEstudio, modalidad, descripcion, archivo);
+        if (!errorValidacion.isBlank()) {
+            return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", errorValidacion));
+        }
+        return integracionService.enviarDicom(idPacienteRegional, sede, fechaEstudio, modalidad, descripcion, archivo, authorization);
+    }
+
     private void auditar(String idPacienteRegional, String criterioBusqueda, String endpoint,
                          HistoriaClinicaRegionalResponse response, Authentication authentication) {
         RegistroRepositorio registro = new RegistroRepositorio();
@@ -131,6 +152,29 @@ public class RepositorioClinicoController {
         }
         if (!telefono.isBlank() && !telefono.matches("^[0-9]{7,10}$")) {
             return "El telefono debe tener entre 7 y 10 digitos.";
+        }
+        return "";
+    }
+
+    private String validarDicom(String idPacienteRegional, String fechaEstudio, String modalidad, String descripcion, MultipartFile archivo) {
+        if (texto(idPacienteRegional).isBlank()) {
+            return "Primero cargue un paciente.";
+        }
+        if (texto(fechaEstudio).isBlank()) {
+            return "La fecha del estudio es obligatoria.";
+        }
+        if (texto(modalidad).isBlank()) {
+            return "La modalidad de imagenologia es obligatoria.";
+        }
+        if (texto(descripcion).isBlank()) {
+            return "La descripcion del estudio es obligatoria.";
+        }
+        if (archivo == null || archivo.isEmpty()) {
+            return "Adjunte un archivo DICOM.";
+        }
+        String nombre = archivo.getOriginalFilename() == null ? "" : archivo.getOriginalFilename().toLowerCase();
+        if (!nombre.endsWith(".dcm") && !nombre.endsWith(".dicom")) {
+            return "Solo se permite subir archivos DICOM (.dcm o .dicom).";
         }
         return "";
     }
