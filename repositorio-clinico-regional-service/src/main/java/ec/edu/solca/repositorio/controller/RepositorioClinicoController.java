@@ -4,6 +4,7 @@ import ec.edu.solca.repositorio.dto.HistoriaClinicaRegionalResponse;
 import ec.edu.solca.repositorio.model.RegistroRepositorio;
 import ec.edu.solca.repositorio.repository.RegistroRepositorioRepository;
 import ec.edu.solca.repositorio.service.RepositorioIntegracionService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.http.ResponseEntity;
@@ -19,7 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -37,17 +40,21 @@ public class RepositorioClinicoController {
 
     @GetMapping("/paciente/{idPacienteRegional}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
-    public HistoriaClinicaRegionalResponse obtenerHistoria(@PathVariable String idPacienteRegional, Authentication authentication) {
+    public HistoriaClinicaRegionalResponse obtenerHistoria(@PathVariable String idPacienteRegional, Authentication authentication, HttpServletRequest request) {
         HistoriaClinicaRegionalResponse response = integracionService.consolidar(idPacienteRegional);
-        auditar(idPacienteRegional, "ID_REGIONAL", "/repositorio/paciente/" + idPacienteRegional, response, authentication);
+        auditar(idPacienteRegional, "ID_REGIONAL", "/repositorio/paciente/" + idPacienteRegional,
+                "Repositorio regional, Paciente maestro, Consulta clinica, Laboratorio clinico, Imagenologia",
+                "Consultar historia por Master ID", resultadoConsolidacion(response), authentication, request);
         return response;
     }
 
     @GetMapping("/cedula/{cedula}")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
-    public HistoriaClinicaRegionalResponse obtenerHistoriaPorCedula(@PathVariable String cedula, Authentication authentication) {
+    public HistoriaClinicaRegionalResponse obtenerHistoriaPorCedula(@PathVariable String cedula, Authentication authentication, HttpServletRequest request) {
         HistoriaClinicaRegionalResponse response = integracionService.consolidarPorCedula(cedula);
-        auditar(extraerIdPacienteRegional(response), "CEDULA:" + cedula, "/repositorio/cedula/" + cedula, response, authentication);
+        auditar(extraerIdPacienteRegional(response), "CEDULA:" + cedula, "/repositorio/cedula/" + cedula,
+                "Repositorio regional, Paciente maestro, Consulta clinica, Laboratorio clinico, Imagenologia",
+                "Consultar historia por cedula", resultadoConsolidacion(response), authentication, request);
         return response;
     }
 
@@ -71,36 +78,54 @@ public class RepositorioClinicoController {
 
     @PostMapping("/pacientes")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
-    public Object crearPaciente(@RequestBody Object paciente) {
+    public Object crearPaciente(@RequestBody Object paciente, Authentication authentication, HttpServletRequest request) {
         String errorValidacion = validarPaciente(paciente);
         if (!errorValidacion.isBlank()) {
+            auditar(pacienteDesdeObjeto(paciente), "REGISTRO_PACIENTE", "/repositorio/pacientes",
+                    "Paciente maestro", "Registrar paciente", "VALIDACION_ERROR: " + errorValidacion, authentication, request);
             return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", errorValidacion));
         }
-        return integracionService.crearPaciente(paciente);
+        Object creado = integracionService.crearPaciente(paciente);
+        auditar(pacienteDesdeObjeto(creado), "REGISTRO_PACIENTE", "/repositorio/pacientes",
+                "Paciente maestro", "Registrar paciente", "PACIENTE_REGISTRADO", authentication, request);
+        return creado;
     }
 
     @PostMapping("/consultas")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
-    public Object crearConsulta(@RequestBody Object consulta) {
-        return integracionService.crearConsulta(consulta);
+    public Object crearConsulta(@RequestBody Object consulta, Authentication authentication, HttpServletRequest request) {
+        Object creado = integracionService.crearConsulta(consulta);
+        auditar(pacienteDesdeObjeto(consulta), "REGISTRO_CONSULTA", "/repositorio/consultas",
+                "Consulta clinica", "Registrar consulta", "CONSULTA_REGISTRADA", authentication, request);
+        return creado;
     }
 
     @PostMapping("/laboratorio")
     @PreAuthorize("hasAnyRole('ADMIN', 'LABORATORIO')")
-    public Object crearLaboratorio(@RequestBody Object resultado) {
-        return integracionService.crearLaboratorio(resultado);
+    public Object crearLaboratorio(@RequestBody Object resultado, Authentication authentication, HttpServletRequest request) {
+        Object creado = integracionService.crearLaboratorio(resultado);
+        auditar(pacienteDesdeObjeto(resultado), "REGISTRO_LABORATORIO", "/repositorio/laboratorio",
+                "Laboratorio clinico", "Registrar laboratorio", "RESULTADO_LABORATORIO_REGISTRADO", authentication, request);
+        return creado;
     }
 
     @PostMapping("/imagenes")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
-    public Object crearImagen(@RequestBody Object estudio) {
-        return integracionService.crearImagen(estudio);
+    public Object crearImagen(@RequestBody Object estudio, Authentication authentication, HttpServletRequest request) {
+        Object creado = integracionService.crearImagen(estudio);
+        auditar(pacienteDesdeObjeto(estudio), "REGISTRO_IMAGENOLOGIA", "/repositorio/imagenes",
+                "Imagenologia", "Registrar estudio de imagenologia", "ESTUDIO_IMAGENOLOGIA_REGISTRADO", authentication, request);
+        return creado;
     }
 
     @GetMapping("/imagenes/{id}/dicom")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
-    public ResponseEntity<byte[]> descargarDicom(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
-        return integracionService.descargarDicom(id, authorization);
+    public ResponseEntity<byte[]> descargarDicom(@PathVariable Long id, @RequestHeader("Authorization") String authorization,
+                                                 Authentication authentication, HttpServletRequest request) {
+        ResponseEntity<byte[]> response = integracionService.descargarDicom(id, authorization);
+        auditar("DICOM:" + id, "VISOR_DICOM", "/repositorio/imagenes/" + id + "/dicom",
+                "Imagenologia", "Visualizar DICOM", "DICOM_DESCARGADO_HTTP_" + response.getStatusCode().value(), authentication, request);
+        return response;
     }
 
     @PostMapping(value = "/imagenes/dicom", consumes = "multipart/form-data")
@@ -112,25 +137,64 @@ public class RepositorioClinicoController {
             @RequestParam String modalidad,
             @RequestParam String descripcion,
             @RequestParam MultipartFile archivo,
-            @RequestHeader("Authorization") String authorization) throws IOException {
+            @RequestHeader("Authorization") String authorization,
+            Authentication authentication,
+            HttpServletRequest request) throws IOException {
         String errorValidacion = validarDicom(idPacienteRegional, fechaEstudio, modalidad, descripcion, archivo);
         if (!errorValidacion.isBlank()) {
+            auditar(idPacienteRegional, "ENVIO_DICOM", "/repositorio/imagenes/dicom",
+                    "Imagenologia", "Enviar DICOM", "VALIDACION_ERROR: " + errorValidacion, authentication, request);
             return org.springframework.http.ResponseEntity.badRequest().body(Map.of("error", errorValidacion));
         }
-        return integracionService.enviarDicom(idPacienteRegional, sede, fechaEstudio, modalidad, descripcion, archivo, authorization);
+        Object enviado = integracionService.enviarDicom(idPacienteRegional, sede, fechaEstudio, modalidad, descripcion, archivo, authorization);
+        auditar(idPacienteRegional, "ENVIO_DICOM", "/repositorio/imagenes/dicom",
+                "Imagenologia", "Enviar DICOM", "DICOM_ENVIADO_A_IMAGENOLOGIA", authentication, request);
+        return enviado;
     }
 
     private void auditar(String idPacienteRegional, String criterioBusqueda, String endpoint,
-                         HistoriaClinicaRegionalResponse response, Authentication authentication) {
+                         String modulos, String accion, String resultados, Authentication authentication, HttpServletRequest request) {
+        LocalDateTime ahora = LocalDateTime.now();
         RegistroRepositorio registro = new RegistroRepositorio();
         registro.setIdPacienteRegional(idPacienteRegional);
+        registro.setPaciente(idPacienteRegional);
         registro.setCriterioBusqueda(criterioBusqueda);
         registro.setEndpoint(endpoint);
         registro.setUsuario(authentication.getName());
-        registro.setRol(authentication.getAuthorities().stream().findFirst().map(Object::toString).orElse("SIN_ROL"));
-        registro.setFechaConsultaRepositorio(LocalDateTime.now().toString());
-        registro.setResultado(response.getErrores().isEmpty() ? "CONSOLIDADO_OK" : "CONSOLIDADO_CON_ERRORES");
+        registro.setRol(rol(authentication));
+        registro.setFechaConsultaRepositorio(ahora.toString());
+        registro.setFecha(LocalDate.now().toString());
+        registro.setHora(LocalTime.now().withNano(0).toString());
+        registro.setDireccionIp(direccionIp(request));
+        registro.setModulos(modulos);
+        registro.setAccion(accion);
+        registro.setResultado(resultados);
+        registro.setResultados(resultados);
         registroRepository.save(registro);
+    }
+
+    private String resultadoConsolidacion(HistoriaClinicaRegionalResponse response) {
+        return response.getErrores().isEmpty() ? "CONSOLIDADO_OK" : "CONSOLIDADO_CON_ERRORES";
+    }
+
+    private String rol(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .findFirst()
+                .map(Object::toString)
+                .map(valor -> valor.replaceFirst("^ROLE_", ""))
+                .orElse("SIN_ROL");
+    }
+
+    private String direccionIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
     }
 
     private String extraerIdPacienteRegional(HistoriaClinicaRegionalResponse response) {
@@ -138,6 +202,13 @@ public class RepositorioClinicoController {
             return String.valueOf(datos.get("idPacienteRegional"));
         }
         return "";
+    }
+
+    private String pacienteDesdeObjeto(Object valor) {
+        if (valor instanceof Map<?, ?> datos && datos.get("idPacienteRegional") != null) {
+            return String.valueOf(datos.get("idPacienteRegional"));
+        }
+        return "No registrado";
     }
 
     private String validarPaciente(Object paciente) {
