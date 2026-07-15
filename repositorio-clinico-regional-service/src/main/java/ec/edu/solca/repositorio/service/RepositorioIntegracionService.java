@@ -4,7 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import ec.edu.solca.repositorio.dto.HistoriaClinicaRegionalResponse;
 import ec.edu.solca.repositorio.model.RegistroClinicoRegional;
+import ec.edu.solca.repositorio.model.RepositorioConsulta;
+import ec.edu.solca.repositorio.model.RepositorioImagenologia;
+import ec.edu.solca.repositorio.model.RepositorioLaboratorio;
+import ec.edu.solca.repositorio.model.RepositorioPaciente;
 import ec.edu.solca.repositorio.repository.RegistroClinicoRegionalRepository;
+import ec.edu.solca.repositorio.repository.RepositorioConsultaRepository;
+import ec.edu.solca.repositorio.repository.RepositorioImagenologiaRepository;
+import ec.edu.solca.repositorio.repository.RepositorioLaboratorioRepository;
+import ec.edu.solca.repositorio.repository.RepositorioPacienteRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.ParameterizedTypeReference;
@@ -33,6 +41,10 @@ public class RepositorioIntegracionService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final RegistroClinicoRegionalRepository registroClinicoRepository;
+    private final RepositorioPacienteRepository repositorioPacienteRepository;
+    private final RepositorioConsultaRepository repositorioConsultaRepository;
+    private final RepositorioLaboratorioRepository repositorioLaboratorioRepository;
+    private final RepositorioImagenologiaRepository repositorioImagenologiaRepository;
     private final String pacienteUrl;
     private final String consultaUrl;
     private final String laboratorioUrl;
@@ -42,6 +54,10 @@ public class RepositorioIntegracionService {
             RestTemplate restTemplate,
             ObjectMapper objectMapper,
             RegistroClinicoRegionalRepository registroClinicoRepository,
+            RepositorioPacienteRepository repositorioPacienteRepository,
+            RepositorioConsultaRepository repositorioConsultaRepository,
+            RepositorioLaboratorioRepository repositorioLaboratorioRepository,
+            RepositorioImagenologiaRepository repositorioImagenologiaRepository,
             @Value("${servicios.paciente-url}") String pacienteUrl,
             @Value("${servicios.consulta-url}") String consultaUrl,
             @Value("${servicios.laboratorio-url}") String laboratorioUrl,
@@ -49,6 +65,10 @@ public class RepositorioIntegracionService {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.registroClinicoRepository = registroClinicoRepository;
+        this.repositorioPacienteRepository = repositorioPacienteRepository;
+        this.repositorioConsultaRepository = repositorioConsultaRepository;
+        this.repositorioLaboratorioRepository = repositorioLaboratorioRepository;
+        this.repositorioImagenologiaRepository = repositorioImagenologiaRepository;
         this.pacienteUrl = pacienteUrl;
         this.consultaUrl = consultaUrl;
         this.laboratorioUrl = laboratorioUrl;
@@ -209,6 +229,9 @@ public class RepositorioIntegracionService {
             return;
         }
         registroClinicoRepository.deleteByIdPacienteRegional(idPacienteRegional);
+        repositorioConsultaRepository.deleteByIdPacienteRegional(idPacienteRegional);
+        repositorioLaboratorioRepository.deleteByIdPacienteRegional(idPacienteRegional);
+        repositorioImagenologiaRepository.deleteByIdPacienteRegional(idPacienteRegional);
         String actualizadoEn = LocalDateTime.now().toString();
         List<RegistroClinicoRegional> registros = new ArrayList<>();
         agregarRegistro(registros, idPacienteRegional, "PACIENTE_MAESTRO", "PACIENTE", response.getPaciente(), actualizadoEn);
@@ -219,6 +242,89 @@ public class RepositorioIntegracionService {
         response.getImagenes().forEach(imagen ->
                 agregarRegistro(registros, idPacienteRegional, "IMAGENOLOGIA", "ESTUDIO_IMAGEN", imagen, actualizadoEn));
         registroClinicoRepository.saveAll(registros);
+        guardarTablasExplicitas(idPacienteRegional, response, actualizadoEn);
+    }
+
+    private void guardarTablasExplicitas(String idPacienteRegional, HistoriaClinicaRegionalResponse response, String actualizadoEn) {
+        if (response.getPaciente() instanceof Map<?, ?> paciente && !paciente.isEmpty()) {
+            repositorioPacienteRepository.save(mapearPaciente(idPacienteRegional, paciente, actualizadoEn));
+        }
+        repositorioConsultaRepository.saveAll(response.getConsultas().stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .map(consulta -> mapearConsulta(idPacienteRegional, consulta, actualizadoEn))
+                .toList());
+        repositorioLaboratorioRepository.saveAll(response.getLaboratorio().stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .map(resultado -> mapearLaboratorio(idPacienteRegional, resultado, actualizadoEn))
+                .toList());
+        repositorioImagenologiaRepository.saveAll(response.getImagenes().stream()
+                .filter(Map.class::isInstance)
+                .map(Map.class::cast)
+                .map(imagen -> mapearImagenologia(idPacienteRegional, imagen, actualizadoEn))
+                .toList());
+    }
+
+    private RepositorioPaciente mapearPaciente(String idPacienteRegional, Map<?, ?> datos, String actualizadoEn) {
+        RepositorioPaciente paciente = new RepositorioPaciente();
+        paciente.setIdPacienteRegional(idPacienteRegional);
+        paciente.setCedula(primero(datos, "cedula"));
+        paciente.setNombres(primero(datos, "nombres"));
+        paciente.setApellidos(primero(datos, "apellidos"));
+        paciente.setSedeOrigen(primero(datos, "sedeOrigen"));
+        paciente.setFechaNacimiento(primero(datos, "fechaNacimiento"));
+        paciente.setSexo(primero(datos, "sexo"));
+        paciente.setDireccion(primero(datos, "direccion"));
+        paciente.setTelefono(primero(datos, "telefono"));
+        paciente.setActualizadoEn(actualizadoEn);
+        return paciente;
+    }
+
+    private RepositorioConsulta mapearConsulta(String idPacienteRegional, Map<?, ?> datos, String actualizadoEn) {
+        RepositorioConsulta consulta = new RepositorioConsulta();
+        consulta.setIdOrigen(numero(datos.get("id")));
+        consulta.setIdPacienteRegional(idPacienteRegional);
+        consulta.setSede(primero(datos, "sede"));
+        consulta.setFechaConsulta(primero(datos, "fechaConsulta"));
+        consulta.setEspecialidad(primero(datos, "especialidad"));
+        consulta.setDiagnostico(primero(datos, "diagnostico"));
+        consulta.setMedicoTratante(primero(datos, "medicoTratante"));
+        consulta.setObservaciones(primero(datos, "observaciones"));
+        consulta.setActualizadoEn(actualizadoEn);
+        return consulta;
+    }
+
+    private RepositorioLaboratorio mapearLaboratorio(String idPacienteRegional, Map<?, ?> datos, String actualizadoEn) {
+        RepositorioLaboratorio resultado = new RepositorioLaboratorio();
+        resultado.setIdOrigen(numero(datos.get("id")));
+        resultado.setIdPacienteRegional(idPacienteRegional);
+        resultado.setSede(primero(datos, "sede"));
+        resultado.setFechaResultado(primero(datos, "fechaResultado"));
+        resultado.setTipoExamen(primero(datos, "tipoExamen"));
+        resultado.setResultado(primero(datos, "resultado"));
+        resultado.setUnidad(primero(datos, "unidad"));
+        resultado.setRangoReferencia(primero(datos, "rangoReferencia"));
+        resultado.setActualizadoEn(actualizadoEn);
+        return resultado;
+    }
+
+    private RepositorioImagenologia mapearImagenologia(String idPacienteRegional, Map<?, ?> datos, String actualizadoEn) {
+        RepositorioImagenologia imagen = new RepositorioImagenologia();
+        imagen.setIdOrigen(numero(datos.get("id")));
+        imagen.setIdPacienteRegional(idPacienteRegional);
+        imagen.setSede(primero(datos, "sede"));
+        imagen.setFechaEstudio(primero(datos, "fechaEstudio"));
+        imagen.setModalidad(primero(datos, "modalidad"));
+        imagen.setDescripcion(primero(datos, "descripcion"));
+        imagen.setUrlPacs(primero(datos, "urlPacs"));
+        imagen.setInformeRadiologico(primero(datos, "informeRadiologico"));
+        imagen.setArchivoDicom(primero(datos, "archivoDicom"));
+        imagen.setProtocoloEnvio(primero(datos, "protocoloEnvio"));
+        imagen.setEstadoEnvio(primero(datos, "estadoEnvio"));
+        imagen.setTieneDicom(!primero(datos, "archivoDicom").isBlank());
+        imagen.setActualizadoEn(actualizadoEn);
+        return imagen;
     }
 
     private void agregarRegistro(List<RegistroClinicoRegional> registros, String idPacienteRegional, String modulo,
@@ -261,6 +367,17 @@ public class RepositorioIntegracionService {
 
     private String texto(Object valor) {
         return valor == null ? "" : String.valueOf(valor);
+    }
+
+    private Long numero(Object valor) {
+        if (valor instanceof Number numero) {
+            return numero.longValue();
+        }
+        try {
+            return valor == null ? null : Long.parseLong(String.valueOf(valor));
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     private String json(Object datos) {
