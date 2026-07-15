@@ -339,10 +339,52 @@ public class RepositorioIntegracionService {
         registro.setIdOrigen(texto(mapa.get("id")));
         registro.setSede(primero(mapa, "sede", "sedeOrigen"));
         registro.setFechaRegistro(primero(mapa, "fechaConsulta", "fechaResultado", "fechaEstudio", "fechaNacimiento"));
+        poblarColumnasCentrales(registro, tipoRegistro, mapa);
         registro.setResumen(resumen(tipoRegistro, mapa));
         registro.setDatosJson(json(datos));
         registro.setActualizadoEn(actualizadoEn);
         registros.add(registro);
+    }
+
+    private void poblarColumnasCentrales(RegistroClinicoRegional registro, String tipoRegistro, Map<?, ?> datos) {
+        switch (tipoRegistro) {
+            case "PACIENTE" -> {
+                registro.setCedula(primero(datos, "cedula"));
+                registro.setNombres(primero(datos, "nombres"));
+                registro.setApellidos(primero(datos, "apellidos"));
+                registro.setSedeOrigen(primero(datos, "sedeOrigen"));
+                registro.setFechaNacimiento(primero(datos, "fechaNacimiento"));
+                registro.setSexo(primero(datos, "sexo"));
+                registro.setDireccion(primero(datos, "direccion"));
+                registro.setTelefono(primero(datos, "telefono"));
+            }
+            case "CONSULTA" -> {
+                registro.setFechaConsulta(primero(datos, "fechaConsulta"));
+                registro.setEspecialidad(primero(datos, "especialidad"));
+                registro.setDiagnostico(primero(datos, "diagnostico"));
+                registro.setMedicoTratante(primero(datos, "medicoTratante"));
+                registro.setObservaciones(primero(datos, "observaciones"));
+            }
+            case "RESULTADO_LABORATORIO" -> {
+                registro.setFechaResultado(primero(datos, "fechaResultado"));
+                registro.setTipoExamen(primero(datos, "tipoExamen"));
+                registro.setResultadoLaboratorio(primero(datos, "resultado"));
+                registro.setUnidad(primero(datos, "unidad"));
+                registro.setRangoReferencia(primero(datos, "rangoReferencia"));
+            }
+            case "ESTUDIO_IMAGEN" -> {
+                registro.setFechaEstudio(primero(datos, "fechaEstudio"));
+                registro.setModalidad(primero(datos, "modalidad"));
+                registro.setDescripcionImagen(primero(datos, "descripcion"));
+                registro.setUrlPacs(primero(datos, "urlPacs"));
+                registro.setInformeRadiologico(primero(datos, "informeRadiologico"));
+                registro.setArchivoDicom(primero(datos, "archivoDicom"));
+                registro.setProtocoloEnvio(primero(datos, "protocoloEnvio"));
+                registro.setEstadoEnvio(primero(datos, "estadoEnvio"));
+                registro.setTieneDicom(!primero(datos, "archivoDicom").isBlank());
+            }
+            default -> { }
+        }
     }
 
     private String resumen(String tipoRegistro, Map<?, ?> datos) {
