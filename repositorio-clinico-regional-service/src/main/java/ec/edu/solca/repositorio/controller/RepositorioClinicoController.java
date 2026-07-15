@@ -1,6 +1,7 @@
 package ec.edu.solca.repositorio.controller;
 
 import ec.edu.solca.repositorio.dto.HistoriaClinicaRegionalResponse;
+import ec.edu.solca.repositorio.model.RegistroClinicoRegional;
 import ec.edu.solca.repositorio.model.RegistroRepositorio;
 import ec.edu.solca.repositorio.repository.RegistroRepositorioRepository;
 import ec.edu.solca.repositorio.service.RepositorioIntegracionService;
@@ -68,6 +69,18 @@ public class RepositorioClinicoController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<RegistroRepositorio> listarAuditoria() {
         return registroRepository.findAll();
+    }
+
+    @GetMapping("/clinico")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public List<RegistroClinicoRegional> listarRepositorioClinico() {
+        return integracionService.listarRepositorioClinico();
+    }
+
+    @GetMapping("/clinico/paciente/{idPacienteRegional}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public List<RegistroClinicoRegional> listarRepositorioClinicoPorPaciente(@PathVariable String idPacienteRegional) {
+        return integracionService.listarRepositorioClinicoPorPaciente(idPacienteRegional);
     }
 
     @GetMapping("/servicios")
