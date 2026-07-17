@@ -32,6 +32,15 @@ public class RegistroClinicoRegional {
     private String diagnostico;
     private String medicoTratante;
     private String observaciones;
+    private String idHistoriaClinica;
+    private String fechaApertura;
+    private String codigoCie10;
+    private String diagnosticoPrincipal;
+    private String motivoConsulta;
+    private String enfermedadActual;
+    private String estadioClinico;
+    private String planTratamiento;
+    private String medicoResponsable;
     private String fechaResultado;
     private String tipoExamen;
     private String resultadoLaboratorio;
@@ -91,6 +100,24 @@ public class RegistroClinicoRegional {
     public void setMedicoTratante(String medicoTratante) { this.medicoTratante = medicoTratante; }
     public String getObservaciones() { return observaciones; }
     public void setObservaciones(String observaciones) { this.observaciones = observaciones; }
+    public String getIdHistoriaClinica() { return idHistoriaClinica; }
+    public void setIdHistoriaClinica(String idHistoriaClinica) { this.idHistoriaClinica = idHistoriaClinica; }
+    public String getFechaApertura() { return fechaApertura; }
+    public void setFechaApertura(String fechaApertura) { this.fechaApertura = fechaApertura; }
+    public String getCodigoCie10() { return codigoCie10; }
+    public void setCodigoCie10(String codigoCie10) { this.codigoCie10 = codigoCie10; }
+    public String getDiagnosticoPrincipal() { return diagnosticoPrincipal; }
+    public void setDiagnosticoPrincipal(String diagnosticoPrincipal) { this.diagnosticoPrincipal = diagnosticoPrincipal; }
+    public String getMotivoConsulta() { return motivoConsulta; }
+    public void setMotivoConsulta(String motivoConsulta) { this.motivoConsulta = motivoConsulta; }
+    public String getEnfermedadActual() { return enfermedadActual; }
+    public void setEnfermedadActual(String enfermedadActual) { this.enfermedadActual = enfermedadActual; }
+    public String getEstadioClinico() { return estadioClinico; }
+    public void setEstadioClinico(String estadioClinico) { this.estadioClinico = estadioClinico; }
+    public String getPlanTratamiento() { return planTratamiento; }
+    public void setPlanTratamiento(String planTratamiento) { this.planTratamiento = planTratamiento; }
+    public String getMedicoResponsable() { return medicoResponsable; }
+    public void setMedicoResponsable(String medicoResponsable) { this.medicoResponsable = medicoResponsable; }
     public String getFechaResultado() { return fechaResultado; }
     public void setFechaResultado(String fechaResultado) { this.fechaResultado = fechaResultado; }
     public String getTipoExamen() { return tipoExamen; }

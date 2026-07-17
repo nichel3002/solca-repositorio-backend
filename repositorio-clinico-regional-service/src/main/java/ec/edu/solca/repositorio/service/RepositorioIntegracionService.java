@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.util.UriUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.multipart.MultipartFile;
@@ -49,6 +50,7 @@ public class RepositorioIntegracionService {
     private final String consultaUrl;
     private final String laboratorioUrl;
     private final String imagenologiaUrl;
+    private final String historiaUrl;
 
     public RepositorioIntegracionService(
             RestTemplate restTemplate,
@@ -61,7 +63,8 @@ public class RepositorioIntegracionService {
             @Value("${servicios.paciente-url}") String pacienteUrl,
             @Value("${servicios.consulta-url}") String consultaUrl,
             @Value("${servicios.laboratorio-url}") String laboratorioUrl,
-            @Value("${servicios.imagenologia-url}") String imagenologiaUrl) {
+            @Value("${servicios.imagenologia-url}") String imagenologiaUrl,
+            @Value("${servicios.historia-url}") String historiaUrl) {
         this.restTemplate = restTemplate;
         this.objectMapper = objectMapper;
         this.registroClinicoRepository = registroClinicoRepository;
@@ -73,6 +76,7 @@ public class RepositorioIntegracionService {
         this.consultaUrl = consultaUrl;
         this.laboratorioUrl = laboratorioUrl;
         this.imagenologiaUrl = imagenologiaUrl;
+        this.historiaUrl = historiaUrl;
     }
 
     @Transactional
@@ -80,9 +84,10 @@ public class RepositorioIntegracionService {
         Map<String, String> errores = new LinkedHashMap<>();
         Object paciente = obtenerObjeto(pacienteUrl + "/pacientes/" + idPacienteRegional, "paciente-maestro", errores);
         List<Object> consultas = obtenerLista(consultaUrl + "/consultas/paciente/" + idPacienteRegional, "consulta-clinica", errores);
+        List<Object> historiasClinicas = obtenerLista(historiaUrl + "/historias/paciente/" + idPacienteRegional, "historia-clinica", errores);
         List<Object> laboratorio = obtenerLista(laboratorioUrl + "/laboratorio/paciente/" + idPacienteRegional, "laboratorio-clinico", errores);
         List<Object> imagenes = obtenerLista(imagenologiaUrl + "/imagenes/paciente/" + idPacienteRegional, "imagenologia", errores);
-        HistoriaClinicaRegionalResponse response = new HistoriaClinicaRegionalResponse(paciente, consultas, laboratorio, imagenes, errores);
+        HistoriaClinicaRegionalResponse response = new HistoriaClinicaRegionalResponse(paciente, consultas, historiasClinicas, laboratorio, imagenes, errores);
         guardarRepositorioClinico(idPacienteRegional, response);
         return response;
     }
@@ -94,13 +99,14 @@ public class RepositorioIntegracionService {
         String idPacienteRegional = extraerIdPacienteRegional(paciente);
         if (idPacienteRegional.isBlank()) {
             errores.put("repositorio-regional", "No se encontro paciente con la cedula indicada.");
-            return new HistoriaClinicaRegionalResponse(paciente, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), errores);
+            return new HistoriaClinicaRegionalResponse(paciente, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), errores);
         }
 
         List<Object> consultas = obtenerLista(consultaUrl + "/consultas/paciente/" + idPacienteRegional, "consulta-clinica", errores);
+        List<Object> historiasClinicas = obtenerLista(historiaUrl + "/historias/paciente/" + idPacienteRegional, "historia-clinica", errores);
         List<Object> laboratorio = obtenerLista(laboratorioUrl + "/laboratorio/paciente/" + idPacienteRegional, "laboratorio-clinico", errores);
         List<Object> imagenes = obtenerLista(imagenologiaUrl + "/imagenes/paciente/" + idPacienteRegional, "imagenologia", errores);
-        HistoriaClinicaRegionalResponse response = new HistoriaClinicaRegionalResponse(paciente, consultas, laboratorio, imagenes, errores);
+        HistoriaClinicaRegionalResponse response = new HistoriaClinicaRegionalResponse(paciente, consultas, historiasClinicas, laboratorio, imagenes, errores);
         guardarRepositorioClinico(idPacienteRegional, response);
         return response;
     }
@@ -119,6 +125,14 @@ public class RepositorioIntegracionService {
 
     public Object crearConsulta(Object consulta) {
         return crearObjeto(consultaUrl + "/consultas", consulta);
+    }
+
+    public Object crearHistoriaClinica(Object historia) {
+        return crearObjeto(historiaUrl + "/historias", historia);
+    }
+
+    public List<Object> buscarCie10(String termino) {
+        return obtenerLista(historiaUrl + "/historias/cie10?q=" + UriUtils.encodeQueryParam(termino, java.nio.charset.StandardCharsets.UTF_8), "historia-clinica", new LinkedHashMap<>());
     }
 
     public Object crearLaboratorio(Object resultado) {
@@ -170,6 +184,7 @@ public class RepositorioIntegracionService {
         List<Map<String, Object>> servicios = new ArrayList<>();
         servicios.add(verificarServicio("Paciente maestro", "paciente-maestro", pacienteUrl + "/pacientes"));
         servicios.add(verificarServicio("Consulta clinica", "consulta-clinica", consultaUrl + "/consultas"));
+        servicios.add(verificarServicio("Historia clinica", "historia-clinica", historiaUrl + "/historias"));
         servicios.add(verificarServicio("Laboratorio clinico", "laboratorio-clinico", laboratorioUrl + "/laboratorio"));
         servicios.add(verificarServicio("Imagenologia / PACS", "imagenologia", imagenologiaUrl + "/imagenes"));
         return servicios;
@@ -233,6 +248,8 @@ public class RepositorioIntegracionService {
         agregarRegistro(registros, idPacienteRegional, "PACIENTE_MAESTRO", "PACIENTE", response.getPaciente(), actualizadoEn);
         response.getConsultas().forEach(consulta ->
                 agregarRegistro(registros, idPacienteRegional, "CONSULTA_CLINICA", "CONSULTA", consulta, actualizadoEn));
+        response.getHistoriasClinicas().forEach(historia ->
+                agregarRegistro(registros, idPacienteRegional, "HISTORIA_CLINICA", "HISTORIA_CLINICA", historia, actualizadoEn));
         response.getLaboratorio().forEach(resultado ->
                 agregarRegistro(registros, idPacienteRegional, "LABORATORIO_CLINICO", "RESULTADO_LABORATORIO", resultado, actualizadoEn));
         response.getImagenes().forEach(imagen ->
@@ -371,6 +388,17 @@ public class RepositorioIntegracionService {
                 registro.setMedicoTratante(primero(datos, "medicoTratante"));
                 registro.setObservaciones(primero(datos, "observaciones"));
             }
+            case "HISTORIA_CLINICA" -> {
+                registro.setIdHistoriaClinica(primero(datos, "idHistoriaClinica"));
+                registro.setFechaApertura(primero(datos, "fechaApertura"));
+                registro.setCodigoCie10(primero(datos, "codigoCie10"));
+                registro.setDiagnosticoPrincipal(primero(datos, "diagnosticoPrincipal"));
+                registro.setMotivoConsulta(primero(datos, "motivoConsulta"));
+                registro.setEnfermedadActual(primero(datos, "enfermedadActual"));
+                registro.setEstadioClinico(primero(datos, "estadioClinico"));
+                registro.setPlanTratamiento(primero(datos, "planTratamiento"));
+                registro.setMedicoResponsable(primero(datos, "medicoResponsable"));
+            }
             case "RESULTADO_LABORATORIO" -> {
                 registro.setFechaResultado(primero(datos, "fechaResultado"));
                 registro.setTipoExamen(primero(datos, "tipoExamen"));
@@ -397,6 +425,7 @@ public class RepositorioIntegracionService {
         return switch (tipoRegistro) {
             case "PACIENTE" -> primero(datos, "nombres") + " " + primero(datos, "apellidos") + " - cedula " + primero(datos, "cedula");
             case "CONSULTA" -> primero(datos, "especialidad") + " - " + primero(datos, "diagnostico");
+            case "HISTORIA_CLINICA" -> primero(datos, "idHistoriaClinica") + " - " + primero(datos, "codigoCie10") + " " + primero(datos, "diagnosticoPrincipal");
             case "RESULTADO_LABORATORIO" -> primero(datos, "tipoExamen") + " - " + primero(datos, "resultado") + " " + primero(datos, "unidad");
             case "ESTUDIO_IMAGEN" -> primero(datos, "modalidad") + " - " + primero(datos, "descripcion");
             default -> tipoRegistro;

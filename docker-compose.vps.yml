@@ -70,6 +70,19 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  av3-historia:
+    build: ./historia-clinica-service
+    container_name: solca-av3-historia
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://av3-postgres:5432/historia_clinica_db
+      SPRING_DATASOURCE_USERNAME: solca_av3
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-solca_av3_2026}
+      JWT_SECRET: ${JWT_SECRET:-solca-avance3-secret-cambiar-en-vps}
+    depends_on:
+      av3-postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
   av3-repositorio:
     build: ./repositorio-clinico-regional-service
     container_name: solca-av3-repositorio
@@ -81,6 +94,7 @@ services:
       CONSULTA_SERVICE_URL: http://av3-consulta:8082
       LABORATORIO_SERVICE_URL: http://av3-laboratorio:8083
       IMAGENOLOGIA_SERVICE_URL: http://av3-imagenologia:8084
+      HISTORIA_SERVICE_URL: http://av3-historia:8086
       JWT_SECRET: ${JWT_SECRET:-solca-avance3-secret-cambiar-en-vps}
     ports:
       - "${BACKEND_PORT:-19085}:8085"
@@ -92,6 +106,8 @@ services:
       av3-laboratorio:
         condition: service_started
       av3-imagenologia:
+        condition: service_started
+      av3-historia:
         condition: service_started
     restart: unless-stopped
 

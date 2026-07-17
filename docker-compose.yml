@@ -73,6 +73,20 @@ services:
       postgres:
         condition: service_healthy
 
+  historia-clinica-service:
+    build: ./historia-clinica-service
+    container_name: historia-clinica-service
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/historia_clinica_db
+      SPRING_DATASOURCE_USERNAME: solca
+      SPRING_DATASOURCE_PASSWORD: solca
+      JWT_SECRET: solca-repositorio-regional-secret-demo-2026
+    ports:
+      - "8086:8086"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   repositorio-clinico-regional-service:
     build: ./repositorio-clinico-regional-service
     container_name: repositorio-clinico-regional-service
@@ -84,6 +98,7 @@ services:
       CONSULTA_SERVICE_URL: http://consulta-clinica-service:8082
       LABORATORIO_SERVICE_URL: http://laboratorio-clinico-service:8083
       IMAGENOLOGIA_SERVICE_URL: http://imagenologia-service:8084
+      HISTORIA_SERVICE_URL: http://historia-clinica-service:8086
       JWT_SECRET: solca-repositorio-regional-secret-demo-2026
     ports:
       - "8085:8085"
@@ -95,6 +110,8 @@ services:
       laboratorio-clinico-service:
         condition: service_started
       imagenologia-service:
+        condition: service_started
+      historia-clinica-service:
         condition: service_started
 
 volumes:

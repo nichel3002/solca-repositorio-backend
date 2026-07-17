@@ -44,7 +44,7 @@ public class RepositorioClinicoController {
     public HistoriaClinicaRegionalResponse obtenerHistoria(@PathVariable String idPacienteRegional, Authentication authentication, HttpServletRequest request) {
         HistoriaClinicaRegionalResponse response = integracionService.consolidar(idPacienteRegional);
         auditar(idPacienteRegional, "ID_REGIONAL", "/repositorio/paciente/" + idPacienteRegional,
-                "Repositorio regional, Paciente maestro, Consulta clinica, Laboratorio clinico, Imagenologia",
+                "Repositorio regional, Paciente maestro, Historia clinica, Consulta clinica, Laboratorio clinico, Imagenologia",
                 "Consultar historia por Master ID", resultadoConsolidacion(response), authentication, request);
         return response;
     }
@@ -54,7 +54,7 @@ public class RepositorioClinicoController {
     public HistoriaClinicaRegionalResponse obtenerHistoriaPorCedula(@PathVariable String cedula, Authentication authentication, HttpServletRequest request) {
         HistoriaClinicaRegionalResponse response = integracionService.consolidarPorCedula(cedula);
         auditar(extraerIdPacienteRegional(response), "CEDULA:" + cedula, "/repositorio/cedula/" + cedula,
-                "Repositorio regional, Paciente maestro, Consulta clinica, Laboratorio clinico, Imagenologia",
+                "Repositorio regional, Paciente maestro, Historia clinica, Consulta clinica, Laboratorio clinico, Imagenologia",
                 "Consultar historia por cedula", resultadoConsolidacion(response), authentication, request);
         return response;
     }
@@ -89,6 +89,12 @@ public class RepositorioClinicoController {
         return integracionService.consultarServiciosDisponibles();
     }
 
+    @GetMapping("/cie10")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public List<Object> buscarCie10(@RequestParam(defaultValue = "") String q) {
+        return integracionService.buscarCie10(q);
+    }
+
     @PostMapping("/pacientes")
     @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
     public Object crearPaciente(@RequestBody Object paciente, Authentication authentication, HttpServletRequest request) {
@@ -110,6 +116,15 @@ public class RepositorioClinicoController {
         Object creado = integracionService.crearConsulta(consulta);
         auditar(pacienteDesdeObjeto(consulta), "REGISTRO_CONSULTA", "/repositorio/consultas",
                 "Consulta clinica", "Registrar consulta", "CONSULTA_REGISTRADA", authentication, request);
+        return creado;
+    }
+
+    @PostMapping("/historias")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    public Object crearHistoriaClinica(@RequestBody Object historia, Authentication authentication, HttpServletRequest request) {
+        Object creado = integracionService.crearHistoriaClinica(historia);
+        auditar(pacienteDesdeObjeto(historia), "REGISTRO_HISTORIA_CLINICA", "/repositorio/historias",
+                "Historia clinica", "Registrar historia clinica", "HISTORIA_CLINICA_REGISTRADA", authentication, request);
         return creado;
     }
 
