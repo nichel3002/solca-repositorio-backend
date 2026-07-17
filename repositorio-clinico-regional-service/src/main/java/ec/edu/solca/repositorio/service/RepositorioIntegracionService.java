@@ -33,9 +33,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 public class RepositorioIntegracionService {
@@ -116,7 +118,18 @@ public class RepositorioIntegracionService {
     }
 
     public List<RegistroClinicoRegional> listarRepositorioClinicoPorPaciente(String idPacienteRegional) {
-        return registroClinicoRepository.findByIdPacienteRegionalOrderByActualizadoEnDescModuloAscFechaRegistroDesc(idPacienteRegional);
+        List<RegistroClinicoRegional> registros = registroClinicoRepository.findByIdPacienteRegionalOrderByActualizadoEnDescModuloAscFechaRegistroDesc(idPacienteRegional);
+        String ultimoCorte = registros.stream()
+                .map(RegistroClinicoRegional::getActualizadoEn)
+                .filter(valor -> valor != null && !valor.isBlank())
+                .max(Comparator.naturalOrder())
+                .orElse("");
+        if (ultimoCorte.isBlank()) {
+            return registros;
+        }
+        return registros.stream()
+                .filter(registro -> Objects.equals(ultimoCorte, registro.getActualizadoEn()))
+                .toList();
     }
 
     public Object crearPaciente(Object paciente) {
