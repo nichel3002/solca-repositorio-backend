@@ -60,13 +60,13 @@ public class RepositorioClinicoController {
     }
 
     @GetMapping("/registros")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO', 'LABORATORIO')")
     public List<RegistroRepositorio> listarRegistros() {
         return registroRepository.findAll();
     }
 
     @GetMapping("/auditoria")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO', 'LABORATORIO')")
     public List<RegistroRepositorio> listarAuditoria() {
         return registroRepository.findAll();
     }
