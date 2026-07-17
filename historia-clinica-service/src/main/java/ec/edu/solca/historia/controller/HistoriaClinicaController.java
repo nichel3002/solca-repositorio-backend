@@ -75,7 +75,12 @@ public class HistoriaClinicaController {
         if (termino.isBlank()) {
             return cie10Repository.findAll().stream().limit(25).toList();
         }
-        return cie10Repository.findTop25ByCodigoContainingIgnoreCaseOrDescripcionContainingIgnoreCaseOrderByCodigoAsc(termino, termino);
+        return cie10Repository.findTop25ByCodigoContainingIgnoreCaseOrDescripcionContainingIgnoreCaseOrSintomasContainingIgnoreCaseOrCodigoOmsContainingIgnoreCaseOrderByCodigoAsc(
+                termino,
+                termino,
+                termino,
+                termino
+        );
     }
 
     private String validarHistoria(HistoriaClinica historia) {
