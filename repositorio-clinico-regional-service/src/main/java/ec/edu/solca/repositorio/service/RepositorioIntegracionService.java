@@ -110,7 +110,7 @@ public class RepositorioIntegracionService {
     }
 
     public List<RegistroClinicoRegional> listarRepositorioClinicoPorPaciente(String idPacienteRegional) {
-        return registroClinicoRepository.findByIdPacienteRegionalOrderByModuloAscFechaRegistroDesc(idPacienteRegional);
+        return registroClinicoRepository.findByIdPacienteRegionalOrderByActualizadoEnDescModuloAscFechaRegistroDesc(idPacienteRegional);
     }
 
     public Object crearPaciente(Object paciente) {
@@ -228,10 +228,6 @@ public class RepositorioIntegracionService {
         if (idPacienteRegional == null || idPacienteRegional.isBlank()) {
             return;
         }
-        registroClinicoRepository.deleteByIdPacienteRegional(idPacienteRegional);
-        repositorioConsultaRepository.deleteByIdPacienteRegional(idPacienteRegional);
-        repositorioLaboratorioRepository.deleteByIdPacienteRegional(idPacienteRegional);
-        repositorioImagenologiaRepository.deleteByIdPacienteRegional(idPacienteRegional);
         String actualizadoEn = LocalDateTime.now().toString();
         List<RegistroClinicoRegional> registros = new ArrayList<>();
         agregarRegistro(registros, idPacienteRegional, "PACIENTE_MAESTRO", "PACIENTE", response.getPaciente(), actualizadoEn);
@@ -246,24 +242,34 @@ public class RepositorioIntegracionService {
     }
 
     private void guardarTablasExplicitas(String idPacienteRegional, HistoriaClinicaRegionalResponse response, String actualizadoEn) {
-        if (response.getPaciente() instanceof Map<?, ?> paciente && !paciente.isEmpty()) {
+        if (!response.getErrores().containsKey("paciente-maestro")
+                && response.getPaciente() instanceof Map<?, ?> paciente && !paciente.isEmpty()) {
             repositorioPacienteRepository.save(mapearPaciente(idPacienteRegional, paciente, actualizadoEn));
         }
-        repositorioConsultaRepository.saveAll(response.getConsultas().stream()
-                .filter(Map.class::isInstance)
-                .map(Map.class::cast)
-                .map(consulta -> mapearConsulta(idPacienteRegional, consulta, actualizadoEn))
-                .toList());
-        repositorioLaboratorioRepository.saveAll(response.getLaboratorio().stream()
-                .filter(Map.class::isInstance)
-                .map(Map.class::cast)
-                .map(resultado -> mapearLaboratorio(idPacienteRegional, resultado, actualizadoEn))
-                .toList());
-        repositorioImagenologiaRepository.saveAll(response.getImagenes().stream()
-                .filter(Map.class::isInstance)
-                .map(Map.class::cast)
-                .map(imagen -> mapearImagenologia(idPacienteRegional, imagen, actualizadoEn))
-                .toList());
+        if (!response.getErrores().containsKey("consulta-clinica")) {
+            repositorioConsultaRepository.deleteByIdPacienteRegional(idPacienteRegional);
+            repositorioConsultaRepository.saveAll(response.getConsultas().stream()
+                    .filter(Map.class::isInstance)
+                    .map(Map.class::cast)
+                    .map(consulta -> mapearConsulta(idPacienteRegional, consulta, actualizadoEn))
+                    .toList());
+        }
+        if (!response.getErrores().containsKey("laboratorio-clinico")) {
+            repositorioLaboratorioRepository.deleteByIdPacienteRegional(idPacienteRegional);
+            repositorioLaboratorioRepository.saveAll(response.getLaboratorio().stream()
+                    .filter(Map.class::isInstance)
+                    .map(Map.class::cast)
+                    .map(resultado -> mapearLaboratorio(idPacienteRegional, resultado, actualizadoEn))
+                    .toList());
+        }
+        if (!response.getErrores().containsKey("imagenologia")) {
+            repositorioImagenologiaRepository.deleteByIdPacienteRegional(idPacienteRegional);
+            repositorioImagenologiaRepository.saveAll(response.getImagenes().stream()
+                    .filter(Map.class::isInstance)
+                    .map(Map.class::cast)
+                    .map(imagen -> mapearImagenologia(idPacienteRegional, imagen, actualizadoEn))
+                    .toList());
+        }
     }
 
     private RepositorioPaciente mapearPaciente(String idPacienteRegional, Map<?, ?> datos, String actualizadoEn) {
